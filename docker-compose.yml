@@ -1,0 +1,47 @@
+version: "3"
+services:
+  app:
+    restart:  always
+    build:  .
+    # 使用gunicorn这个工具部署，监听端口为3031
+
+    #     "pipenv install && pipenv shell       #  pipenv初始化 问题卡在了安装依赖,注释掉pipenv这两行即可成功运行
+    command:  bash -c "python3 manage.py makemigrations && python3 manage.py migrate && gunicorn --timeout=30 --workers=5 --threads=4 --bind :3031 hello.wsgi:application "
+    # 挂载卷 用于宿主机与docker的文件与目录映射 类似于docker 中的 -v参数，同时会变化
+    volumes:
+      - .:/code
+    # 端口映射
+    ports:
+      - "3031:3031"
+    # db启动了之后，app才会启动
+    depends_on:
+      - db
+    networks:
+      - db_network
+
+  db:
+    # 拉取的镜像
+    image:  mysql:5.7
+    # 挂载卷 用于宿主机与docker的文件与目录映射 类似于docker 中的 -v参数，同时会变化
+    volumes:
+      - "./mysql:/var/lib/mysql"
+    expose:
+      - 3306
+    ports:
+      - "3306:3306"
+    restart:  always
+    # 设置mysql数据库的root密码和数据库
+    environment:
+      - MYSQL_ROOT_PASSWORD=zhangsan@123
+      - MYSQL_DATABASE=test_db
+    # 设置mysql编码为UTF-8 让它支持中文
+    command:  [
+      '--character-set-server=utf8',
+      '--collation-server=utf8_general_ci'
+    ]
+    networks:
+      - db_network
+# 网络桥接方式
+networks:
+  db_network:
+    driver: bridge
