@@ -77,25 +77,25 @@ WSGI_APPLICATION = 'hello.wsgi.application'
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-    }
-
-    #docker配置
     # 'default': {
-    #         'ENGINE': 'django.db.backends.mysql',
-    #         'NAME': 'test_db',
-    #         'USER': 'root',
-    #         'PASSWORD': 'zhangsan@123',
-    #         'HOST': 'db',  # 这个地方必须是你的docker-compose文件中mysql名称，比如db
-    #         'PORT': '3306',
-    #         'TEST': {
-    #                 'NAME': 'weekly',
-    #                 'CHARSET': 'utf8',
-    #                 'COLLATION': 'utf8_general_ci',
-    #             },
-    #     }
+    #     'ENGINE': 'django.db.backends.sqlite3',
+    #     'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+    # }
+
+    # docker配置
+    'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': 'test_db',
+            'USER': 'root',
+            'PASSWORD': 'zhangsan@123',
+            'HOST': 'db',  # 这个地方必须是你的docker-compose文件中mysql名称，比如db
+            'PORT': '3306',
+            'TEST': {
+                    'NAME': 'weekly',
+                    'CHARSET': 'utf8',
+                    'COLLATION': 'utf8_general_ci',
+                },
+        }
 }
 
 

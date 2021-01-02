@@ -10,35 +10,58 @@ from django.forms.models import model_to_dict
 
 
 
+def return_exist(obj):
+    """
+        验证是否存在
+    """
+    if not obj:
+        res = JsonResponse({
+            "code": 0,
+            "msg": "不存在该用户"
+        })
+        res.status_code = status.HTTP_400_BAD_REQUEST
+        return res
+
 class UserView(View):
     """
     请求方式:
                 http://127.0.0.1:8000/site/user
     """
-    def return_exist(self,obj):
-        if not obj:
-            res = JsonResponse({
-                "code": 0,
-                "msg": "不存在该用户"
-            })
-            res.status_code = status.HTTP_401_UNAUTHORIZED
-            return res
 
-    def post(self,request,pk):
+    def regex(self,request,):
         """
-            创建用户
+            验证用户名和密码格式
         """
 
         username = request.POST.get("username")
-        pwd = request.POST.get("password")
-        username_regex = r"[a-zA-Z]{10,}"
+        user_regex = r"[a-zA-Z]{10,}"
+
+        password = request.POST.get("password")
         pwd_regex = r"(?=.*[a-z])(?=.*[A-Z])(?=.*[$@$!%*?&.])[A-Za-z\d]{1,6}"
 
-        user_match = re.findall(username_regex,username)
-        pwd_match = re.findall(pwd_regex,pwd)
+        user_match = re.findall(user_regex, username)
+        pwd_match = re.findall(pwd_regex, password)
 
-        if user_match and pwd_match:
-            models.User.objects.create(username=username,password=pwd)
+        if not user_match:
+            username = None
+        if not pwd_match:
+            password = None
+        return {
+            "user":username,
+            "pwd":password
+        }
+
+    def post(self,request):
+        """
+            创建用户
+        """
+        res = self.regex(request)
+        user = res['user']
+        pwd = res['pwd']
+
+        # 创建成功
+        if user and pwd:
+            models.User.objects.create(username=user,password=pwd)
             res = JsonResponse({
                 "code": 1,
                 "msg": "创建成功"
@@ -46,15 +69,14 @@ class UserView(View):
             res.status_code = status.HTTP_201_CREATED
             return res
 
-
+        # 失败
         res = JsonResponse({
             "code": 0,
-            "msg": "创建失败"
+            "msg": "用户名或者密码error"
         })
-        res.status_code = status.HTTP_200_OK
+
+        res.status_code = status.HTTP_400_BAD_REQUEST
         return res
-
-
 
     def get(self,request,pk):
         """
@@ -62,17 +84,21 @@ class UserView(View):
             请求方式:
                 http://127.0.0.1:8000/site/user/(?P<id>\d+)
         """
-        obj = models.User.objects.filter(id=pk)
-        res = self.return_exist(obj)
-        if res:return res
 
+        obj = models.User.objects.filter(id=pk)
+        res = return_exist(obj)
+
+        # fail
+        if res:
+            return res
+        # suc
         res = JsonResponse({
             "code": 1,
-            "msg": model_to_dict(obj.first(),fields=["username","password"])
+            "msg":"suc",
+            "data": model_to_dict(obj.first(),fields=["username","password"])
         })
         res.status_code = status.HTTP_200_OK
         return res
-
 
     def delete(self,request,pk):
         """
@@ -81,9 +107,10 @@ class UserView(View):
                 http://127.0.0.1:8000/site/user/(?P<id>\d+)
         """
         obj = models.User.objects.filter(id=pk)
-        res = self.return_exist(obj)
+        res = return_exist(obj)
+        # fail
         if res:return res
-
+        # suc
         obj.delete()
         res = JsonResponse({
             "code": 1,
@@ -99,18 +126,19 @@ class UserView(View):
                 http://127.0.0.1:8000/site/user/(?P<id>\d+)?pwd=xxxx
         """
         user_id = request.session.get("user_id")
-        pwd = request.GET.get("pwd")
+        pwd = request.GET.get("password")
+        # print(user_id,pwd)
 
         # 传值为空
         if not pk or not pwd:
             res = JsonResponse({
                 "code": 0,
-                "msg": "穿值为空"
+                "msg": "值为空"
             })
-            res.status_code = status.HTTP_401_UNAUTHORIZED
+            res.status_code = status.HTTP_400_BAD_REQUEST
             return res
 
-        # 客户端传递参数有失
+        # 验证是否为本人操作
         if int(user_id) != int(pk):
             res = JsonResponse({
                 "code": 0,
@@ -121,7 +149,7 @@ class UserView(View):
 
         query = models.User.objects.filter(id=pk)
 
-        res = self.return_exist(query)
+        res = return_exist(query)
         if res:return res
 
         #保存
@@ -153,15 +181,11 @@ def login(request):
 
     user = request.POST.get("username")
     pwd = request.POST.get("password")
+
     obj = models.User.objects.filter(username=user,password=pwd)
 
-    if not obj:
-        res = JsonResponse({
-            "code":0,
-            "msg":"不存在该obj"
-        })
-        res.status_code = status.HTTP_401_UNAUTHORIZED
-        return res
+    res = return_exist(obj)
+    if res:return res
 
     request.session["user_id"] = obj.first().pk
 
@@ -169,7 +193,7 @@ def login(request):
         "code":1,
         "msg":"登录成功"
     })
-    res.status_code = status.HTTP_201_CREATED
+    res.status_code = status.HTTP_200_OK
     return res
 
 def logout(request):
@@ -250,7 +274,7 @@ class DataView(View):
         """
         key = request.GET.get("key")
         count = models.Data.objects.filter(str__contains=key,len__gt=10)
-        print(count)
+
         # 没查到
         if not count:
             res = JsonResponse({

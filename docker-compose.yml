@@ -5,7 +5,6 @@ services:
     build:  .
     # 使用gunicorn这个工具部署，监听端口为3031
 
-    #     "pipenv install && pipenv shell       #  pipenv初始化 问题卡在了安装依赖,注释掉pipenv这两行即可成功运行
     command:  bash -c "python3 manage.py makemigrations && python3 manage.py migrate && gunicorn --timeout=30 --workers=5 --threads=4 --bind :3031 hello.wsgi:application "
     # 挂载卷 用于宿主机与docker的文件与目录映射 类似于docker 中的 -v参数，同时会变化
     volumes:
